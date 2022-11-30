@@ -1,74 +1,263 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-# import Ice
+
+import getpass
+import logging
+import Ice
 import time
 import sys
 import hashlib
-import tkinter as tk
-# Ice.loadSlice("iceflix.ice")
-# import IceFlix
+
+Ice.loadSlice("iceflix/iceflix.ice")
+import IceFlix
+
+MAXINT = 3
+SEGDORMIR = 5.0
+
+
+def menu():
+
+    print("\n")
+    print("Seleccione una opción:")
+    print("1. Iniciar sesión")
+    print("2. Buscar en catálogo")
+    print("3. Editar catálogo")
+    print("4. Cerrar sesión")
+    print("5. Salir")
+
+    opcion = input("Opción: ")
+    print()
+    if not opcion.isdigit() or int(opcion) not in range(1, 6):
+        raise ValueError
+    return int(opcion)
 
 
 def login():
-
-    w2 = tk.Toplevel()
-    w2.title = 'Inicio de sesión'
-    w2.geometry('300x300')
-    txtInputUser = tk.Entry(w2)
-    txtInputPass = tk.Entry(w2, width=17, show="*")
-    button1 = tk.Button(w2, text='Salir', command=w2.destroy)
-    buttonAcceopt = tk.Button(w2, text='Aceptar', command=w2.destroy)
-    labelUser = tk.Label(w2, text='Usuario')
-    labelPass = tk.Label(w2, text='Contraseña')
-    button1.place(x=100, y=200)
-    buttonAcceopt.place(x=100, y=120)
-    labelUser.place(x=40, y=50)
-    labelPass.place(x=40, y=80)
-    txtInputUser.place(x=100, y=50)
-    txtInputPass.place(x=124, y=80)
+    usr = input("Usuario: ")
+    contr = getpass.getpass("Contraseña: ")
+    contr_hash = hashlib.sha256(contr.encode('utf-8')).hexdigest()
+    return usr, contr_hash
 
 
-def accion2():
-    texto.configure(text='Has elegido la opción 2 del menú principal')
+def reconectar(prx):
+    logging.info("Reconectando...")
+    i = 0
+    new_prx = None
+    while not new_prx and i < MAXINT:
+        time.sleep(SEGDORMIR)
+        try:
+            new_prx = IceFlix.MainPrx.checkedCast(prx)
+        except Exception:
+            logging.error("Reconexión fallida...\nIntentando de nuevo...")
+        i += 1
+    return new_prx
 
 
-def acciona():
-    texto.configure(text='Has elegido la opción a del submenú')
+def buscarNombre(prx_catalogo, usr_tk):
+
+    videos = []
+    nombre_vid = input("Introduzca el nombre de la película/vídeo: ")
+    res = input("¿Desea realizar una búsqueda de término exacto? (s/n): ")
+    exacta = False
+    if res == "s":
+        exacta = True
+    else:
+        exacta = False    
+    vidsId = prx_catalogo.getTilesByName(nombre_vid, exacta)
+    if vidsId == []:
+        logging.info("No se han encontrado resultados")
+    else:
+        try:
+            for vids in vidsId:
+                videos.append(prx_catalogo.getTile(vids,usr_tk))
+            return videos
+        except IceFlix.WrongMediaId:
+            logging.error("No se ha encontrado el vídeo")
+        except IceFlix.TemporallyUnavailable:
+            logging.error("El vídeo no está disponible")
+        except IceFlix.Unauthorized:
+            logging.error("No tiene permisos para ver el vídeo")
+
+    
 
 
-def accionb():
-    texto.configure(text='Has elegido la opción b del submenú')
-    ventana.destroy()
+def buscarTag(prx_catalogo, usr_tk):
+    
+    vids = []
+    videos = []
+    vidsId = []
+    todos = False
+    tags = input("Introduzca los tags a buscar, sepáralos con una barra (/): ")
+    tags = tags.split("/")
+    res = input("¿Desea realizar una búsqueda con todos los tags? (s/n): ")
+    if res == "s":
+        todos = True
+    else:
+        todos = False
+
+    try:
+        vids = prx_catalogo.getTilesByTag(tags, todos, usr_tk)
+    except IceFlix.Unauthorized:
+        logging.error("No tiene permisos suficientes para realizar la búsqueda")
+    
+    for i in vids:
+        vidsId.append(i)
+        
+    if vidsId == []:
+        logging.info("No se han encontrado resultados")
+    else:
+        try:
+            for vids in vidsId:
+                videos.append(prx_catalogo.getTile(vids,usr_tk))
+            return videos
+        except IceFlix.WrongMediaId:
+            logging.error("No se ha encontrado el vídeo")
+        except IceFlix.TemporallyUnavailable:
+            logging.error("El vídeo no está disponible")
+        except IceFlix.Unauthorized:
+            logging.error("No tiene permisos para ver el vídeo")
+
+    
+        
+    
+    return vids
+
+def mostrarVids(vids):
+    print("Títulos encontrados:")
+    for i in vids:
+        print(str(i.info.name) + " - " + str(i.info.tags))
+
+def editarCatalogo(prx_catalogo, vid, tkn):
+    opcion = input("Añadir o eliminar tag? (a/e): ")
+    if opcion == "a":
+        tags = input("Introduzca los tags a añadir: ")
+        try:
+            prx_catalogo.addTags(vid.mediaId, tags, tkn)
+        except IceFlix.WrongMediaId:
+            logging.error("No se ha encontrado el vídeo")
+        except IceFlix.Unauthorized:
+            logging.error("No tiene permisos para editar el vídeo")
+        
+    if opcion == "e":
+        tags = input("Introduzca los tags a eliminar: ")
+        try:
+            prx_catalogo.removeTags(vid.mediaId, tags, tkn)
+        except IceFlix.WrongMediaId:
+            logging.error("No se ha encontrado el vídeo")
+        except IceFlix.Unauthorized:
+            logging.error("No tiene permisos para editar el vídeo")
+            
+
+class Cliente(Ice.Application):
+
+    usr = None
+    contra = None
+    usr_tok = ""
+    vids = []
+    log_prx = None
+    catalog_proxy = None
+    
+    def run(self, argv):
+        catalogo = ""
+        vids = []
+        opcion = 0
+        Cliente_prx = self.communicator().stringToProxy(argv[1])
+
+        try:
+            Cliente_ice_prx = IceFlix.MainPrx.checkedCast(Cliente_prx)
+            print("[*] Conectado al servidor")
+
+        except:
+            logging.error("No se pudo conectar...")
+            Cliente_ice_prx = reconectar(Cliente_prx)
+            if not Cliente_ice_prx:
+                exit(1)
+
+        while opcion != 5:
+            try:
+                if self.usr_tok != "":
+                    print("Hay una sesión iniciada")
+                opcion = menu()
+            except ValueError:
+                logging.error("Opción inválida")
+            if opcion == 1:
+                self.usr, self.contra = login()
+                try:
+                    self.log_prx = Cliente_ice_prx.getAuthenticator()
+                    #self.usr_tok = self.log_prx.refreshAuthorization(self.usr, self.contra)
+                    self.usr_tok = "Soy un token."
+                except IceFlix.TemporaryUnavailable:
+                    logging.error("Servicio no disponible")
+                except IceFlix.Unauthorized:
+                    logging.error("Usuario o contraseña incorrectos")
+
+            if opcion == 2:
+                try:
+                    self.catalog_proxy = Cliente_ice_prx.getCatalog()
+                    buscar = input("¿Quiere buscar por nombre o por tag?\n1. Nombre\n2. Tag\n")
+                    if buscar == "1":
+                        self.vids = buscarNombre(self.catalog_proxy,self.usr_tok)
+                    if self.usr_tok != "":
+                        if buscar == "2":
+                            vids = buscarTag(self.catalog_proxy, self.usr_tok)
+                    else:
+                        print("Para buscar por tags debes iniciar sesión.")
+                    
+                    if self.vids != []:
+                        mostrarVids(vids)
+                        op = input("¿Desea descargar algún vídeo? (s/n): ")
+                        if op == "s":
+                            if self.usr_tok != "":
+                                vid = input("Introduzca el nombre del vídeo a descargar:\nVídeos: ", str(list(range(len(vids)))))
+                                pro_prx = self.vids[vid].provider
+                                fi_hand_prx = pro_prx.openFile(self.vids[vid].mediaId, self.usr_tok)
+                                file = fi_hand_prx.receive(2048, self.usr_tok)
+                            else:
+                                print("Para descargar vídeos debes iniciar sesión.")
+                        else:
+                            print("Volviendo al menú principal...")
+                            time.sleep(1)     
+                             
+                except IceFlix.TemporaryUnavailable:
+                    logging.error("Servicio no disponible")
+                except IceFlix.Unauthorized:
+                    logging.error("Token incorrectos")
+                    self.usr_tok = self.log_prx.refreshAuthorization(self.usr, self.contra)
+                except IceFlix.WrongMediaId:
+                    logging.error("Id incorrecto")
+                    
+            if opcion == 3:
+                seguir = True
+                if self.usr_tok == "":
+                    logging.error(
+                        "No hay sesión iniciada, debe iniciar sesión para poder editar el catálogo")
+                    seguir = False
+                if self.vids == []:
+                    logging.error(
+                        "No ha seleccionado ningún título, debe buscar un vídeo para poder editar el catálogo")
+                    seguir = False
+                
+                if seguir:
+                    op = input("Vídeo que desea editar:\nVídeos: ", str(list(range(len(self.vids)))))
+                    editarCatalogo(self.catalog_proxy, self.vids[op], self.usr_tok)
+                else:
+                    print("Volviendo al menú principal...")
+                    time.sleep(1)
+                
+
+            if opcion == 4:
+                if self.usr_tok == "":
+                    logging.error("No hay sesión iniciada")
+                else:
+                    self.usr_tok = ""
+                    print("Sesión cerrada")
+                time.sleep(0.5)
+            if opcion == 5:
+                print("[!] Saliendo...")
+                time.sleep(0.5)
 
 
-# creamos la ventana principal
-ventana = tk.Tk()
-ventana.title('Ventana principal')
-ventana.geometry('400x400')
-
-texto = tk.Label(ventana, text='Elija una opción del menú.',
-                 font=('Arial', 20))
-button1 = tk.Button(ventana, text='1. Iniciar sesión ', command=login)
-button2 = tk.Button(ventana, text='2. Cerrar sesión ', command=accion2)
-button3 = tk.Button(ventana, text='3. Buscar en catálogo ', command=acciona)
-button4 = tk.Button(ventana, text='4. Salir ', command=accionb)
-
-
-button1.place(x=100, y=100)
-button2.place(x=100, y=150)
-button3.place(x=100, y=200)
-button4.place(x=100, y=250)
-
-texto.place(x=50, y=50)
-
-#   print("1. Iniciar sesión")
-#     print("2. Buscar en catálogo")
-#     print("3. Cambiar configuración de conexión con el servidor")
-#     print("4. Cerrar sesión")
-#     print("5. Parar reproducción")
-#     print("6. Salir")
-
-
-if __name__ == '__main__':
-    ventana.mainloop()  # ejecutamos la ventana principal
+if __name__ == "__main__":
+    APP = Cliente()
+    sys.exit(APP.main(sys.argv))

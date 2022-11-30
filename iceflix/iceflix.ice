@@ -52,7 +52,7 @@
     struct Media {
         string mediaId;
         FileService *provider;
-        MediaInfo info;
+        MediaInfo info; 
     };
 
     // MediaCatalog service
