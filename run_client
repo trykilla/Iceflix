@@ -1,3 +1,16 @@
-#!/usr/bin/env bash
+#!/usr/bin/bash
 
-iceflix --Ice.Config=configs/client.config
+echo ¿Entrar como admin? [S/N]
+
+read admin
+
+echo "Introduzca proxy" 
+read prx
+
+if [ $admin = "S" ] || [ $admin = "s" ]; 
+then
+    
+    gnome-terminal -x sh -c "python3 AdminClient.py $prx --Ice.Config=configs/client.config; bash"
+else
+    gnome-terminal -x sh -c "python3 Client.py $prx; bash"
+fi

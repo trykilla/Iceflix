@@ -185,8 +185,8 @@ class Cliente(Ice.Application):
                 self.usr, self.contra = login()
                 try:
                     self.log_prx = Cliente_ice_prx.getAuthenticator()
-                    #self.usr_tok = self.log_prx.refreshAuthorization(self.usr, self.contra)
-                    self.usr_tok = "Soy un token."
+                    self.usr_tok = self.log_prx.refreshAuthorization(self.usr, self.contra)
+                    
                 except IceFlix.TemporaryUnavailable:
                     logging.error("Servicio no disponible")
                 except IceFlix.Unauthorized:
@@ -212,7 +212,10 @@ class Cliente(Ice.Application):
                                 vid = input("Introduzca el nombre del vídeo a descargar:\nVídeos: ", str(list(range(len(vids)))))
                                 pro_prx = self.vids[vid].provider
                                 fi_hand_prx = pro_prx.openFile(self.vids[vid].mediaId, self.usr_tok)
-                                file = fi_hand_prx.receive(2048, self.usr_tok)
+                                arch = fi_hand_prx.receive(2048, self.usr_tok)
+                                bin_file = open(self.vids[vid].info.name, "wb")
+                                bin_file.write(arch)
+                                bin_file.close()
                             else:
                                 print("Para descargar vídeos debes iniciar sesión.")
                         else:

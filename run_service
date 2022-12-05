@@ -1,7 +1,5 @@
 #!/usr/bin/env bash
 
 # TODO: Remove the services you don't need
-iceflix-main --Ice.Config=configs/main.config
-iceflix-authenticator --Ice.Config=configs/authenticator.config
-iceflix-catalog --Ice.Config=configs/catalog.config
-iceflix-fileservice --Ice.Config=configs/fileservice.config
+
+gnome-terminal -x sh -c "python3 ServerPrueba.py --Ice.Config=server.config; bash"
