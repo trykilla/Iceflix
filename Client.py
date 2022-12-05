@@ -76,8 +76,7 @@ def buscarNombre(prx_catalogo, usr_tk):
             logging.error("No se ha encontrado el vídeo")
         except IceFlix.TemporallyUnavailable:
             logging.error("El vídeo no está disponible")
-        except IceFlix.Unauthorized:
-            logging.error("No tiene permisos para ver el vídeo")
+
 
     
 
@@ -96,10 +95,9 @@ def buscarTag(prx_catalogo, usr_tk):
     else:
         todos = False
 
-    try:
-        vids = prx_catalogo.getTilesByTag(tags, todos, usr_tk)
-    except IceFlix.Unauthorized:
-        logging.error("No tiene permisos suficientes para realizar la búsqueda")
+    
+    vids = prx_catalogo.getTilesByTag(tags, todos, usr_tk)
+    
     
     for i in vids:
         vidsId.append(i)
@@ -115,8 +113,7 @@ def buscarTag(prx_catalogo, usr_tk):
             logging.error("No se ha encontrado el vídeo")
         except IceFlix.TemporallyUnavailable:
             logging.error("El vídeo no está disponible")
-        except IceFlix.Unauthorized:
-            logging.error("No tiene permisos para ver el vídeo")
+
 
     
         
@@ -136,8 +133,7 @@ def editarCatalogo(prx_catalogo, vid, tkn):
             prx_catalogo.addTags(vid.mediaId, tags, tkn)
         except IceFlix.WrongMediaId:
             logging.error("No se ha encontrado el vídeo")
-        except IceFlix.Unauthorized:
-            logging.error("No tiene permisos para editar el vídeo")
+        
         
     if opcion == "e":
         tags = input("Introduzca los tags a eliminar: ")
@@ -145,8 +141,7 @@ def editarCatalogo(prx_catalogo, vid, tkn):
             prx_catalogo.removeTags(vid.mediaId, tags, tkn)
         except IceFlix.WrongMediaId:
             logging.error("No se ha encontrado el vídeo")
-        except IceFlix.Unauthorized:
-            logging.error("No tiene permisos para editar el vídeo")
+
             
 
 class Cliente(Ice.Application):
@@ -190,6 +185,7 @@ class Cliente(Ice.Application):
                 except IceFlix.TemporaryUnavailable:
                     logging.error("Servicio no disponible")
                 except IceFlix.Unauthorized:
+                    self.usr_tok = self.log_prx.refreshAuthorization(self.usr, self.contra)
                     logging.error("Usuario o contraseña incorrectos")
 
             if opcion == 2:
@@ -197,10 +193,18 @@ class Cliente(Ice.Application):
                     self.catalog_proxy = Cliente_ice_prx.getCatalog()
                     buscar = input("¿Quiere buscar por nombre o por tag?\n1. Nombre\n2. Tag\n")
                     if buscar == "1":
-                        self.vids = buscarNombre(self.catalog_proxy,self.usr_tok)
+                        try:
+                            self.vids = buscarNombre(self.catalog_proxy,self.usr_tok)
+                        except IceFlix.Unauthorized:
+                            self.usr_tok = self.log_prx.refreshAuthorization(self.usr, self.contra)
+                            logging.error("No tiene permisos para realizar la búsqueda")
                     if self.usr_tok != "":
                         if buscar == "2":
-                            vids = buscarTag(self.catalog_proxy, self.usr_tok)
+                            try:
+                                vids = buscarTag(self.catalog_proxy, self.usr_tok)
+                            except IceFlix.Unauthorized:
+                                self.usr_tok = self.log_prx.refreshAuthorization(self.usr, self.contra)
+                                logging.error("No tiene permisos para realizar la búsqueda")
                     else:
                         print("Para buscar por tags debes iniciar sesión.")
                     
@@ -209,10 +213,10 @@ class Cliente(Ice.Application):
                         op = input("¿Desea descargar algún vídeo? (s/n): ")
                         if op == "s":
                             if self.usr_tok != "":
-                                vid = input("Introduzca el nombre del vídeo a descargar:\nVídeos: ", str(list(range(len(vids)))))
+                                vid = input("Introduzca el vídeo a descargar:\nVídeos: " + str(list(range(len(vids)))))
                                 pro_prx = self.vids[vid].provider
                                 fi_hand_prx = pro_prx.openFile(self.vids[vid].mediaId, self.usr_tok)
-                                arch = fi_hand_prx.receive(2048, self.usr_tok)
+                                arch = fi_hand_prx.receive(4096, self.usr_tok)
                                 bin_file = open(self.vids[vid].info.name, "wb")
                                 bin_file.write(arch)
                                 bin_file.close()
@@ -225,8 +229,9 @@ class Cliente(Ice.Application):
                 except IceFlix.TemporaryUnavailable:
                     logging.error("Servicio no disponible")
                 except IceFlix.Unauthorized:
-                    logging.error("Token incorrectos")
                     self.usr_tok = self.log_prx.refreshAuthorization(self.usr, self.contra)
+                    logging.error("Token incorrectos")
+                    
                 except IceFlix.WrongMediaId:
                     logging.error("Id incorrecto")
                     
@@ -243,7 +248,11 @@ class Cliente(Ice.Application):
                 
                 if seguir:
                     op = input("Vídeo que desea editar:\nVídeos: ", str(list(range(len(self.vids)))))
-                    editarCatalogo(self.catalog_proxy, self.vids[op], self.usr_tok)
+                    try:
+                        editarCatalogo(self.catalog_proxy, self.vids[op], self.usr_tok)
+                    except IceFlix.Unauthorized:
+                        self.usr_tok = self.log_prx.refreshAuthorization(self.usr, self.contra)
+                        logging.error("No tiene permisos para editar el catálogo")
                 else:
                     print("Volviendo al menú principal...")
                     time.sleep(1)

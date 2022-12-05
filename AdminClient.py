@@ -135,20 +135,21 @@ class Cliente(Ice.Application):
                     uploader = FileUploaderI(ruta)
                     prx_uploader = adapter.addWithUUID(uploader)
                     prx_uploader = IceFlix.FileUploaderPrx.checkedCast(prx_uploader)
-                    prx_fs = self.communicator().stringToProxy("file_provider")
                     try:
-                        prx_fs = IceFlix.FileProviderPrx.checkedCast(prx_fs)
+                        prx_fs = Cliente_ice_prx.getFileService()
                         prx_fs.uploadFile(prx_uploader, tk_admin)
                         print("Archivo subido")
                     except IceFlix.Unauthorized:
                         logging.error("No tiene permisos para realizar esta acción")
+                    except IceFlix.TemporarilyUnavaliable:
+                        logging.error("El servidor no está disponible en este momento")
                         
             elif opcion == 5:
                 try:
                     catalog_proxy = Cliente_ice_prx.getCatalog()
                     vids = Client.buscarNombre(catalog_proxy, None)
                     Client.mostrarVids(vids)
-                    vid = input("Introduzca el nombre del vídeo a eliminar:\nVídeos: ", str(list(range(len(vids)))))
+                    vid = input("Introduzca el nombre del vídeo a eliminar:\nVídeos: " + str(list(range(len(vids)))))
                     file_provider = vids[vid].provider
                     file_provider.removeFile(vids[vid].mediaId, tk_admin)
                 except IceFlix.Unauthorized:

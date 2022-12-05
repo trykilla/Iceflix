@@ -85,6 +85,7 @@
     interface Main {
         Authenticator* getAuthenticator() throws TemporaryUnavailable;
         MediaCatalog* getCatalog() throws TemporaryUnavailable;
+        FileService* getFileService() throws TemporaryUnavailable;
 
         void newService(Object* service, string serviceId);
         void announce(Object* service, string serviceId);
