@@ -51,7 +51,7 @@ class Cliente(Ice.Application):
         print("Está usted en el modo admin")
         
         opcion = 0
-        Cliente_prx = self.communicator().stringToProxy(argv[1])
+        Cliente_prx = self.communicator().propertyToProxy("Cliente_prx")
         adapter = self.communicator().createObjectAdapter("FileUploaderAdapter")
         adapter.activate()
         try:
@@ -78,7 +78,7 @@ class Cliente(Ice.Application):
             print("No tiene permisos de administrador")
             exit(1)
         
-        while opcion != 5:
+        while opcion != 6:
             try:
                 opcion = menu()
             except ValueError:

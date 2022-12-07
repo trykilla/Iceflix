@@ -4,13 +4,10 @@ echo ¿Entrar como admin? [S/N]
 
 read admin
 
-echo "Introduzca proxy" 
-read prx
-
 if [ $admin = "S" ] || [ $admin = "s" ]; 
 then
     
-    gnome-terminal -x sh -c "python3 AdminClient.py $prx --Ice.Config=configs/client.config; bash"
+    gnome-terminal -x sh -c "python3 AdminClient.py --Ice.Config=configs/client.config; bash"
 else
-    gnome-terminal -x sh -c "python3 Client.py $prx; bash"
+    gnome-terminal -x sh -c "python3 Client.py --Ice.Config=configs/client.config; bash"
 fi

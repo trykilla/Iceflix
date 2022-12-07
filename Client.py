@@ -157,7 +157,7 @@ class Cliente(Ice.Application):
         catalogo = ""
         vids = []
         opcion = 0
-        Cliente_prx = self.communicator().stringToProxy(argv[1])
+        Cliente_prx = self.communicator().propertyToProxy("Cliente_prx")
 
         try:
             Cliente_ice_prx = IceFlix.MainPrx.checkedCast(Cliente_prx)
