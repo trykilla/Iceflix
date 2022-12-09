@@ -25,3 +25,9 @@ It contains the following files and directories:
 - `setup.cfg` is a Python distribution configuration file for Setuptools.
   It needs to be modified in order to adeccuate to the package name and
   console handler functions.
+
+## Client
+
+* In my case, I'm implementing the Client service. The Client has to be capable of doing several accesses or changes to other services. There are two kind of clients: Clien and AdminClient
+* * [Client](Client.py): The client should offer the user this methods: Login, search in the catalog, edit the catalog and logout. Also, when searching in the catalog, we can download the media we want.
+* * [AdminClient](AdminClient.py): The AdminClient should offer the user this methods: add user, remove user, edit a title, upload a file and delete a file.

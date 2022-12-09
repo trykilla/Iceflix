@@ -23,12 +23,13 @@ def menu():
     print("1. Iniciar sesión")
     print("2. Buscar en catálogo")
     print("3. Editar catálogo")
-    print("4. Cerrar sesión")
-    print("5. Salir")
+    print("4. Acceder a una búsqueda reciente")
+    print("5. Cerrar sesión")
+    print("6. Salir")
 
     opcion = input("Opción: ")
     print()
-    if not opcion.isdigit() or int(opcion) not in range(1, 6):
+    if not opcion.isdigit() or int(opcion) not in range(1, 7):
         raise ValueError
     return int(opcion)
 
@@ -65,25 +66,24 @@ def buscarNombre(prx_catalogo, usr_tk):
     else:
         exacta = False    
     vidsId = prx_catalogo.getTilesByName(nombre_vid, exacta)
-    if vidsId == []:
-        logging.info("No se han encontrado resultados")
-    else:
+    if vidsId != []:
         try:
             for vids in vidsId:
                 videos.append(prx_catalogo.getTile(vids,usr_tk))
-            return videos
         except IceFlix.WrongMediaId:
             logging.error("No se ha encontrado el vídeo")
         except IceFlix.TemporallyUnavailable:
             logging.error("El vídeo no está disponible")
+    
 
-
+    return videos
+   
     
 
 
 def buscarTag(prx_catalogo, usr_tk):
     
-    vids = []
+    
     videos = []
     vidsId = []
     todos = False
@@ -96,34 +96,31 @@ def buscarTag(prx_catalogo, usr_tk):
         todos = False
 
     
-    vids = prx_catalogo.getTilesByTag(tags, todos, usr_tk)
+    vidsId = prx_catalogo.getTilesByTag(tags, todos, usr_tk)
     
-    
-    for i in vids:
-        vidsId.append(i)
         
-    if vidsId == []:
-        logging.info("No se han encontrado resultados")
-    else:
+    if vidsId != []:  
         try:
             for vids in vidsId:
                 videos.append(prx_catalogo.getTile(vids,usr_tk))
-            return videos
         except IceFlix.WrongMediaId:
             logging.error("No se ha encontrado el vídeo")
         except IceFlix.TemporallyUnavailable:
             logging.error("El vídeo no está disponible")
-
+    
+    return videos
 
     
         
-    
-    return vids
+
 
 def mostrarVids(vids):
     print("Títulos encontrados:")
-    for i in vids:
-        print(str(i.info.name) + " - " + str(i.info.tags))
+    i = 0
+    for vid in vids:
+        print(str(i)+ ": " + vid.info.name
+              + ". Tags: " + str(vid.info.tags))
+        i += 1
 
 def editarCatalogo(prx_catalogo, vid, tkn):
     opcion = input("Añadir o eliminar tag? (a/e): ")
@@ -169,7 +166,9 @@ class Cliente(Ice.Application):
             if not Cliente_ice_prx:
                 exit(1)
 
-        while opcion != 5:
+        while opcion != 6:
+            if self.vids != []:
+                print("Tiene vídeos almacenados")
             try:
                 if self.usr_tok != "":
                     print("Hay una sesión iniciada")
@@ -201,7 +200,7 @@ class Cliente(Ice.Application):
                     if self.usr_tok != "":
                         if buscar == "2":
                             try:
-                                vids = buscarTag(self.catalog_proxy, self.usr_tok)
+                                self.vids = buscarTag(self.catalog_proxy, self.usr_tok)
                             except IceFlix.Unauthorized:
                                 self.usr_tok = self.log_prx.refreshAuthorization(self.usr, self.contra)
                                 logging.error("No tiene permisos para realizar la búsqueda")
@@ -209,7 +208,7 @@ class Cliente(Ice.Application):
                         print("Para buscar por tags debes iniciar sesión.")
                     
                     if self.vids != []:
-                        mostrarVids(vids)
+                        mostrarVids(self.vids)
                         op = input("¿Desea descargar algún vídeo? (s/n): ")
                         if op == "s":
                             if self.usr_tok != "":
@@ -220,12 +219,14 @@ class Cliente(Ice.Application):
                                 bin_file = open(self.vids[vid].info.name, "wb")
                                 bin_file.write(arch)
                                 bin_file.close()
+                                self.vids.pop(vid)
                             else:
                                 print("Para descargar vídeos debes iniciar sesión.")
                         else:
                             print("Volviendo al menú principal...")
                             time.sleep(1)     
-                             
+                    else:
+                        logging.error("No se han encontrado vídeos")     
                 except IceFlix.TemporaryUnavailable:
                     logging.error("Servicio no disponible")
                 except IceFlix.Unauthorized:
@@ -257,15 +258,42 @@ class Cliente(Ice.Application):
                     print("Volviendo al menú principal...")
                     time.sleep(1)
                 
-
             if opcion == 4:
+                if self.vids != []:
+                    mostrarVids(self.vids)
+                    op = input("¿Desea descargar algún vídeo? (s/n): ")
+                    if op == "s":
+                        if self.usr_tok != "":
+                            vid = input("Introduzca el vídeo a descargar:\nVídeos: " + str(list(range(len(vids)))))
+                            pro_prx = self.vids[vid].provider
+                            try:
+                                fi_hand_prx = pro_prx.openFile(self.vids[vid].mediaId, self.usr_tok)
+                                arch = fi_hand_prx.receive(4096, self.usr_tok)
+                                bin_file = open(self.vids[vid].info.name, "wb")
+                                bin_file.write(arch)
+                                bin_file.close()
+                                self.vids.pop(vid)
+                            except IceFlix.Unauthorized:
+                                self.usr_tok = self.log_prx.refreshAuthorization(self.usr, self.contra)
+                                logging.error("No tiene permisos para descargar el vídeo")
+                            except IceFlix.WrongMediaId:
+                                logging.error("Id incorrecto")
+                            
+                        else:
+                            logging.error("Para descargar vídeos debes iniciar sesión.")
+                    else:
+                            print("Volviendo al menú principal...")
+                            time.sleep(1)     
+                else:
+                    logging.error("No hay vídeos para mostrar")                
+            if opcion == 5:
                 if self.usr_tok == "":
                     logging.error("No hay sesión iniciada")
                 else:
                     self.usr_tok = ""
                     print("Sesión cerrada")
                 time.sleep(0.5)
-            if opcion == 5:
+            if opcion == 6:
                 print("[!] Saliendo...")
                 time.sleep(0.5)
 

@@ -69,7 +69,7 @@ class Cliente(Ice.Application):
         
         try:
             self.auth_prx = Cliente_ice_prx.getAuthenticator()
-        except IceFlix.temporaryUnavailable:
+        except IceFlix.TemporaryUnavailable:
             logging.error("Servidor temporalmente no disponible")
             exit(1)
             
@@ -90,7 +90,7 @@ class Cliente(Ice.Application):
                 try:
                     self.auth_prx.addUser(usr, contr, tk_admin)
                     print("Usuario añadido")
-                except IceFlix.TemporarilyUnavaliable:
+                except IceFlix.TemporaryUnavailable:
                     logging.error("El servidor no está disponible en este momento")
                 except IceFlix.Unauthorized:
                     logging.error("No tiene permisos para realizar esta acción") 
@@ -101,7 +101,7 @@ class Cliente(Ice.Application):
                 try:
                     self.auth_prx.removeUser(usr, tk_admin)
                     print("Usuario borrado")
-                except IceFlix.TemporarilyUnavaliable:
+                except IceFlix.TemporaryUnavailable:
                     logging.error("El servidor no está disponible en este momento")
                 except IceFlix.Unauthorized:
                     logging.error("No tiene permisos para realizar esta acción")   
@@ -110,7 +110,7 @@ class Cliente(Ice.Application):
                 try:
                     
                     catalog_proxy = Cliente_ice_prx.getCatalog()
-                    vids = Client.buscarNombre(catalog_proxy, None)
+                    vids = Client.buscarNombre(catalog_proxy, tk_admin)
                     Client.mostrarVids(vids)
                     vid = input("Introduzca el vídeo a editar:\nVídeos: ", str(list(range(len(vids)))))
                     nombre = input("Introduzca el nuevo nombre: ")
@@ -124,7 +124,7 @@ class Cliente(Ice.Application):
                         logging.error("El id del vídeo no es válido")
                     
                     
-                except IceFlix.TemporarilyUnavaliable:
+                except IceFlix.TemporaryUnavailable:
                     logging.error("El servidor no está disponible en este momento")
                     
             elif opcion == 4:
@@ -141,7 +141,7 @@ class Cliente(Ice.Application):
                         print("Archivo subido")
                     except IceFlix.Unauthorized:
                         logging.error("No tiene permisos para realizar esta acción")
-                    except IceFlix.TemporarilyUnavaliable:
+                    except IceFlix.TemporaryUnavailable:
                         logging.error("El servidor no está disponible en este momento")
                         
             elif opcion == 5:
@@ -156,7 +156,7 @@ class Cliente(Ice.Application):
                     logging.error("No tiene permisos para realizar esta acción")
                 except IceFlix.WrongMediaId:
                     logging.error("El id del vídeo no es correcto")
-                except IceFlix.TemporarilyUnavaliable:
+                except IceFlix.TemporaryUnavailable:
                     logging.error("El servidor no está disponible en este momento")
                     
             elif opcion == 6:
