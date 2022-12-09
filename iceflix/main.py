@@ -15,7 +15,7 @@ class Main(IceFlix.Main):
     """
 
     def getAuthenticator(self, current):
-        # TODO: implement
+        print("getAuthenticator")
         return None
 
     def getCatalog(self, current):
