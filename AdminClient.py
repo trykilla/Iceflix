@@ -118,7 +118,8 @@ class Cliente(Ice.Application):
         tk_admin = hashlib.sha256(tk_admin.encode('utf-8')).hexdigest()
 
         try:
-            self.auth_prx = Cliente_ice_prx.getAuthenticator()
+            self.auth_prx = IceFlix.AuthenticatorPrx.checkedCast(
+                Cliente_ice_prx.getAuthenticator())
         except IceFlix.TemporaryUnavailable:
             logging.error("Servidor temporalmente no disponible")
             sys.exit(1)
@@ -193,7 +194,8 @@ class Cliente(Ice.Application):
                     prx_uploader = IceFlix.FileUploaderPrx.checkedCast(
                         prx_uploader)
                     try:
-                        prx_fs = Cliente_ice_prx.getFileService()
+                        prx_fs = IceFlix.FileServicePrx.checkedCast(
+                            Cliente_ice_prx.getFileService())
                         prx_fs.uploadFile(prx_uploader, tk_admin)
                         print("Archivo subido")
                     except IceFlix.Unauthorized:
@@ -205,7 +207,8 @@ class Cliente(Ice.Application):
 
             elif opcion == 5:
                 try:
-                    catalog_proxy = Cliente_ice_prx.getCatalog()
+                    catalog_proxy = IceFlix.MediaCatalogPrx.checkedCast(
+                        Cliente_ice_prx.getCatalog())
                     vids = Client.buscarNombre(catalog_proxy, None)
                     Client.mostrarVids(vids)
                     vid = input(

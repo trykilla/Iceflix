@@ -239,7 +239,8 @@ class Cliente(Ice.Application):
             if opcion == 1:
                 self.usr, self.contra = login()
                 try:
-                    self.log_prx = Cliente_ice_prx.getAuthenticator()
+                    self.log_prx = IceFlix.AuthenticatorPrx.checkedCast(
+                        Cliente_ice_prx.getAuthenticator())
                     self.usr_tok = self.log_prx.refreshAuthorization(
                         self.usr, self.contra)
 
@@ -252,7 +253,8 @@ class Cliente(Ice.Application):
 
             if opcion == 2:
                 try:
-                    self.catalog_proxy = Cliente_ice_prx.getCatalog()
+                    self.catalog_proxy = IceFlix.MediaCatalogPrx.checkedCast(
+                        Cliente_ice_prx.getCatalog())
                     buscar = input(
                         "¿Quiere buscar por nombre o por tag?\n1. Nombre\n2. Tag\n")
                     if buscar == "1":
