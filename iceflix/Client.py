@@ -447,6 +447,7 @@ class Cliente(Ice.Application):
                     logging.error("No hay sesión iniciada")
                 else:
                     self.usr_tok = "no_usr"
+                    self.vids = []
                     print("Sesión cerrada")
                 time.sleep(0.5)
             if opcion == 6:
