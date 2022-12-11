@@ -16,7 +16,7 @@ def handler(signum):
     print("\n")
     exit(1)
 
-class PrinterI(IceFlix.Main):
+class MainI(IceFlix.Main):
 
     # Authenticator* getAuthenticator() throws TemporaryUnavailable;
     def getAuthenticator(self, current=None):
@@ -34,14 +34,9 @@ class PrinterI(IceFlix.Main):
 class Server(Ice.Application):
     def run(self, argv):
         broker = self.communicator()
-        servant = PrinterI()
+        servant = MainI()
         
         adapter = broker.createObjectAdapter("MainAdapter")
-        
-        # proxy = adapter.add(servant, broker.stringToIdentity("printer1"))
-
-        # print(proxy)
-        # sys.stdout.flush()
 
         proxy = adapter.add(servant, broker.stringToIdentity("Main"))
         print('El proxy es: "'+str(proxy)+'"')

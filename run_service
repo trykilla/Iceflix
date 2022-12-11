@@ -1,6 +1,0 @@
-#!/usr/bin/env bash
-
-# TODO: Remove the services you don't need
-
-gnome-terminal -x sh -c "python3 iceflix/main.py --Ice.Config=configs/main.config; bash"
-gnome-terminal -x sh -c "python3 iceflix/Catalog.py --Ice.Config=configs/catalog.config; bash"

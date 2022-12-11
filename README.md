@@ -1,33 +1,18 @@
-# Template project for ssdd-lab
+# Welcome to Iceflix
+* Link to the repo: https://github.com/trykilla/Iceflix.git 
+## ¿What is Iceflix?
 
-This repository is a Python project template.
-It contains the following files and directories:
-
-- `configs` has several configuration files examples.
-- `iceflix` is the main Python package.
-  You should rename it to something meaninful for your project.
-- `iceflix/__init__.py` is an empty file needed by Python to
-  recognise the `iceflix` directory as a Python module.
-- `iceflix/cli.py` contains several functions to handle the basic console entry points
-  defined in `python.cfg`.
-  The name of the submodule and the functions can be modified if you need.
-- `iceflix/iceflix.ice` contains the Slice interface definition for the lab.
-- `iceflix/main.py` has a minimal implementation of a service,
-  without the service servant itself.
-  Can be used as template for main or the other services.
-- `pyproject.toml` defines the build system used in the project.
-- `run_client` should be a script that can be run directly from the
-  repository root directory. It should be able to run the IceFlix
-  client.
-- `run_service` should be a script that can be run directly from the
-  repository root directory. It should be able to run all the services
-  in background in order to test the whole system.
-- `setup.cfg` is a Python distribution configuration file for Setuptools.
-  It needs to be modified in order to adeccuate to the package name and
-  console handler functions.
-
+Iceflix is a project that imitates Netflix. A distributed system way more simple but with similar 
+functionalities. Done with Ice and Python.
 ## Client
 
 * In my case, I'm implementing the Client service. The Client has to be capable of doing several accesses or changes to other services. There are two kind of clients: Clien and AdminClient
-* * [Client](Client.py): The client should offer the user this methods: Login, search in the catalog, edit the catalog and logout. Also, when searching in the catalog, we can download the media we want.
-* * [AdminClient](AdminClient.py): The AdminClient should offer the user this methods: add user, remove user, edit a title, upload a file and delete a file.
+  * [Client](iceflix/Client.py): The client should offer the user this methods: Login, search in the catalog, edit the catalog and logout. Also, when searching in the catalog, we can download the media we want.
+  * [AdminClient](iceflix/AdminClient.py): The AdminClient should offer the user this methods: add user, remove user, edit a title, upload a file and delete a file.
+
+## ¿How to run the client?
+
+* To run the cliente, you have to run the script (previously you have to change the config for the server you want to connect to, explained later) [run_client](run_client) and then, you have to write "s" or "n". For example, if you want to run the AdminClient, you will be asked "¿Quieres entrar como administrador? (s/n)" and you have to answer either "s" or "n".
+
+*To change the server where the client is going to connect, you have to change the IP and the port in the [client.config](configs/client.config) for the ones you are going to use.*
+

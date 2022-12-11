@@ -7,7 +7,7 @@ read admin
 if [ $admin = "S" ] || [ $admin = "s" ]; 
 then
     
-    gnome-terminal -x sh -c "python3 AdminClient.py --Ice.Config=configs/client.config; bash"
+    gnome-terminal -x sh -c "python3 iceflix/AdminClient.py --Ice.Config=configs/client.config; bash"
 else
-    gnome-terminal -x sh -c "python3 Client.py --Ice.Config=configs/client.config; bash"
+    gnome-terminal -x sh -c "python3 iceflix/Client.py --Ice.Config=configs/client.config; bash"
 fi
