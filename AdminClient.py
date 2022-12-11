@@ -128,9 +128,11 @@ class Cliente(Ice.Application):
         if not es_admin:
             print("No tiene permisos de administrador")
             sys.exit(1)
+        print("Bienvenido al modo administrador")
 
         while opcion != 6:
             try:
+                
                 opcion = menu()
             except ValueError:
                 logging.error("Opción no válida")

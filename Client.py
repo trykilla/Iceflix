@@ -427,7 +427,7 @@ class Cliente(Ice.Application):
                 else:
                     logging.error("No hay vídeos para mostrar")
             if opcion == 5:
-                if self.usr_tok == "":
+                if self.usr_tok == "def":
                     logging.error("No hay sesión iniciada")
                 else:
                     self.usr_tok = ""
