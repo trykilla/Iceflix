@@ -28,6 +28,7 @@ import Ice
 import time
 import sys
 import hashlib
+import threading
 
 Ice.loadSlice("iceflix/iceflix.ice")
 import IceFlix
@@ -113,13 +114,14 @@ def buscarNombre(prx_catalogo, usr_tk):
     exacta = bool(res == "s")
 
     vidsId = prx_catalogo.getTilesByName(nombre_vid, exacta)
+    print(vidsId)
     if vidsId:
         try:
             for vids in vidsId:
                 videos.append(prx_catalogo.getTile(vids, usr_tk))
         except IceFlix.WrongMediaId:
             logging.error("No se ha encontrado el vídeo")
-        except IceFlix.TemporallyUnavailable:
+        except IceFlix.TemporaryUnavailable:
             logging.error("El vídeo no está disponible")
 
     return videos
@@ -196,7 +198,15 @@ def editarCatalogo(prx_catalogo, vid, tkn):
         except IceFlix.Unauthorized:
             logging.error("No tiene permisos para editar el catálogo")
 
-
+# def rec_period(main, prx, usr_tk, contra):
+#     while True:
+#         if not main:
+#             time.sleep(30)
+#         if not prx.isAuthorized(usr_tk):
+#             usr_tk = prx.refreshAuthorization(usr_tk, contra)
+#         if main:
+#             break
+#     return usr_tk 
 class Cliente(Ice.Application):
 
     """Clase Cliente: Ejecuta todos los métodos que necesite el usuario.
@@ -209,11 +219,12 @@ class Cliente(Ice.Application):
     log_prx = None
     catalog_proxy = None
 
+
     def run(self, args):
         """Método que ejecuta el cliente
         """
 
-        
+        self.usr_tok = "def"
         opcion = 0
         Cliente_prx = self.communicator().propertyToProxy("Cliente_prx")
 
@@ -231,7 +242,7 @@ class Cliente(Ice.Application):
             if self.vids:
                 print("Tiene vídeos almacenados")
             try:
-                if self.usr_tok != "":
+                if self.usr_tok != "def":
                     print("Hay una sesión iniciada")
                 opcion = menu()
             except ValueError:
@@ -247,14 +258,17 @@ class Cliente(Ice.Application):
                 except IceFlix.TemporaryUnavailable:
                     logging.error("Servicio no disponible")
                 except IceFlix.Unauthorized:
-                    self.usr_tok = self.log_prx.refreshAuthorization(
-                        self.usr, self.contra)
+                    # self.usr_tok = self.log_prx.refreshAuthorization(
+                    #     self.usr, self.contra)
                     logging.error("Usuario o contraseña incorrectos")
-
+                # self.proccess = threading.Thread(target=rec_period, args=([False], self.log_prx, self.usr_tok, self.contra))
+                # self.proccess.start()
+                
             if opcion == 2:
                 try:
                     self.catalog_proxy = IceFlix.MediaCatalogPrx.checkedCast(
                         Cliente_ice_prx.getCatalog())
+                    print(self.catalog_proxy)
                     buscar = input(
                         "¿Quiere buscar por nombre o por tag?\n1. Nombre\n2. Tag\n")
                     if buscar == "1":
@@ -262,12 +276,13 @@ class Cliente(Ice.Application):
                             self.vids = buscarNombre(
                                 self.catalog_proxy, self.usr_tok)
                         except IceFlix.Unauthorized:
-                            self.usr_tok = self.log_prx.refreshAuthorization(
-                                self.usr, self.contra)
+                            # self.usr_tok = self.log_prx.refreshAuthorization(
+                            #     self.usr, self.contra)
                             logging.error(
                                 "No tiene permisos para realizar la búsqueda")
-                    if self.usr_tok != "":
-                        if buscar == "2":
+                    if buscar == "2":
+                        if self.usr_tok != "def":
+                        
                             try:
                                 self.vids = buscarTag(
                                     self.catalog_proxy, self.usr_tok)
@@ -276,19 +291,21 @@ class Cliente(Ice.Application):
                                     self.usr, self.contra)
                                 logging.error(
                                     "No tiene permisos para realizar la búsqueda")
-                    else:
-                        print("Para buscar por tags debes iniciar sesión.")
+                        else:
+                            print("Para buscar por tags debes iniciar sesión.")
 
                     if self.vids:
                         mostrarVids(self.vids)
                         op = input("¿Desea descargar algún vídeo? (s/n): ")
                         if op == "s":
-                            if self.usr_tok != "":
+                            if self.usr_tok != "def":
                                 vid = int(input(
-                                    "Introduzca el vídeo a descargar:\nVídeos: " + 
+                                    "Introduzca el vídeo a descargar(número):\nVídeos: " + 
                                     str(list(range(len(self.vids))))))
                                 try:
-                                    pro_prx = self.vids[vid].provider
+                                    pro_prx = IceFlix.FileServicePrx.checkedCast(
+                                        self.vids[vid].provider)
+                                    
                                 except IndexError:
                                     logging.error(
                                         "El índice introducido no existe")
@@ -297,9 +314,13 @@ class Cliente(Ice.Application):
                                     logging.error(
                                         "El índice introducido no es válido (Solo números)")
                                     sys.exit(1)
+                                fh = IceFlix.FileHandler()
+                                
                                 fi_hand_prx = pro_prx.openFile(
                                     self.vids[vid].mediaId, self.usr_tok)
-                                arch = fi_hand_prx.receive(4096, self.usr_tok)
+                                prx = fi_hand_prx.adapter.addWithUUID(fh)
+                                file_ser = IceFlix.FileHandlerPrx.checkedCast(prx)
+                                arch = file_ser.receive(4096, self.usr_tok)
                                 with open (self.vids[vid].info.name, "wb") as bin_file:
                                     bin_file.write(arch)
                                 bin_file.close()
@@ -314,8 +335,8 @@ class Cliente(Ice.Application):
                 except IceFlix.TemporaryUnavailable:
                     logging.error("Servicio no disponible")
                 except IceFlix.Unauthorized:
-                    self.usr_tok = self.log_prx.refreshAuthorization(
-                        self.usr, self.contra)
+                    # self.usr_tok = self.log_prx.refreshAuthorization(
+                    #     self.usr, self.contra)
                     logging.error("Token incorrectos")
 
                 except IceFlix.WrongMediaId:
@@ -342,8 +363,8 @@ class Cliente(Ice.Application):
                         editarCatalogo(self.catalog_proxy,
                                        self.vids[op], self.usr_tok)
                     except IceFlix.Unauthorized:
-                        self.usr_tok = self.log_prx.refreshAuthorization(
-                            self.usr, self.contra)
+                        # self.usr_tok = self.log_prx.refreshAuthorization(
+                        #     self.usr, self.contra)
                         logging.error(
                             "No tiene permisos para editar el catálogo")
                     except ValueError:
@@ -362,12 +383,13 @@ class Cliente(Ice.Application):
                     mostrarVids(self.vids)
                     op = input("¿Desea descargar algún vídeo? (s/n): ")
                     if op == "s":
-                        if self.usr_tok != "":
+                        if self.usr_tok != "def":
                             vid = input(
-                                "Introduzca el vídeo a descargar:\nVídeos: " + 
+                                "Introduzca el vídeo a descargar (número):\nVídeos: " + 
                                 str(list(range(len(self.vids)))))
                             try:
-                                pro_prx = self.vids[vid].provider
+                               pro_prx = IceFlix.FileServicePrx.checkedCast(
+                                   self.vids[vid].provider)
                             except IndexError:
                                 logging.error(
                                     "El índice introducido no existe")
@@ -377,16 +399,20 @@ class Cliente(Ice.Application):
                                     "El índice introducido no es válido (Solo números)")
                                 sys.exit(1)
                             try:
+
+                                
                                 fi_hand_prx = pro_prx.openFile(
-                                    self.vids[vid].mediaId, self.usr_tok)
-                                arch = fi_hand_prx.receive(4096, self.usr_tok)
+                                self.vids[vid].mediaId, self.usr_tok)
+                                
+                                file_ser = IceFlix.FileHandlerPrx.checkedCast(fi_hand_prx)
+                                arch = file_ser.receive(4096, self.usr_tok)
                                 with open (self.vids[vid].info.name, "wb") as bin_file:
                                     bin_file.write(arch)
                                 bin_file.close()
                                 self.vids.pop(vid)
                             except IceFlix.Unauthorized:
-                                self.usr_tok = self.log_prx.refreshAuthorization(
-                                    self.usr, self.contra)
+                                # self.usr_tok = self.log_prx.refreshAuthorization(
+                                #     self.usr, self.contra)
                                 logging.error(
                                     "No tiene permisos para descargar el vídeo")
                             except IceFlix.WrongMediaId:
@@ -408,6 +434,7 @@ class Cliente(Ice.Application):
                     print("Sesión cerrada")
                 time.sleep(0.5)
             if opcion == 6:
+                # self.proccess.daemon = True
                 print("[!] Saliendo...")
                 time.sleep(0.5)
 

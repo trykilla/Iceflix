@@ -68,7 +68,7 @@ class FileUploaderI(IceFlix.FileUploader):
 
         Args:
             size (Int): Tamano del archivo
-            current (Cualquiera, optional): Cualquiera. Defaults to None.
+            current (Cualquiera, optional): Cualquiera. Defaults to None
 
         Returns:
             String: Archivo
@@ -115,7 +115,7 @@ class Cliente(Ice.Application):
                 sys.exit(1)
 
         tk_admin = input("Introduzca el token de administrador: ")
-        tk_admin = hashlib.sha256(tk_admin.encode('utf-8')).hexdigest()
+        # tk_admin = hashlib.sha256(tk_admin.encode('utf-8')).hexdigest()
 
         try:
             self.auth_prx = IceFlix.AuthenticatorPrx.checkedCast(
@@ -167,7 +167,7 @@ class Cliente(Ice.Application):
                     catalog_proxy = Cliente_ice_prx.getCatalog()
                     vids = Client.buscarNombre(catalog_proxy, tk_admin)
                     Client.mostrarVids(vids)
-                    vid = input("Introduzca el vídeo a editar:\nVídeos: ", str(
+                    vid = input("Introduzca el vídeo a editar(número):\nVídeos: ", str(
                         list(range(len(vids)))))
                     nombre = input("Introduzca el nuevo nombre: ")
                     nombre = nombre+".mp4"
@@ -209,12 +209,14 @@ class Cliente(Ice.Application):
                 try:
                     catalog_proxy = IceFlix.MediaCatalogPrx.checkedCast(
                         Cliente_ice_prx.getCatalog())
-                    vids = Client.buscarNombre(catalog_proxy, None)
+                    vids = Client.buscarNombre(catalog_proxy, "def")
                     Client.mostrarVids(vids)
                     vid = input(
-                        "Introduzca el nombre del vídeo a eliminar:\nVídeos: " + str(list(range(len(vids)))))
-                    file_provider = vids[vid].provider
-                    file_provider.removeFile(vids[vid].mediaId, tk_admin)
+                        "Introduzca el fichero del vídeo a eliminar:\nVídeos: " + str(list(range(len(vids)))))
+                    pro_prx = IceFlix.FileServicePrx.checkedCast(
+                                        self.vids[vid].provider)
+                    pro_prx.removeFile(vids[vid].mediaId, tk_admin)
+                    print("Archivo eliminado")
                 except IceFlix.Unauthorized:
                     logging.error(
                         "No tiene permisos para realizar esta acción")

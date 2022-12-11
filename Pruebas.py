@@ -1,3 +1,4 @@
+import hashlib
 import logging
 import os
 
@@ -17,22 +18,15 @@ up = Upload(
 
 print(up.fd.read().decode("utf-8"))
 
+class Vids():
+    def __init__(self, name, tags) -> None:
+        self.name = name
+        self.tags = tags
 
-videos = []
-videos = ["Video 1", "video 2", "video 3", "video 4"]
-print(videos.__str__())
-try:
-    vid = input("Introduzca el nombre del vídeo a descargar:\nVídeos: " +
-                str(list(range(len(videos)))))
-    print(videos[int(vid)])
-except IndexError:
-    print("El vídeo no existe")
-    logging.error("El vídeo no existe")
-except ValueError:
-    logging.error("El vídeo no existe(solo números)")
-
-print("hola")
-res = input("¿Desea realizar una búsqueda de término exacto? (s/n): ")
-exacta = False
-exacta = bool(res == "s")
-print(exacta)
+print("Títulos encontrados:")
+i = 0
+vids = [Vids("hola", ["hola", "mundo"]), Vids("adios", ["adios", "mundo"])]
+for vid in vids:
+    print(str(i) + ": " + vid.name
+          + ". Tags: " + str(vid.tags))
+    i += 1
