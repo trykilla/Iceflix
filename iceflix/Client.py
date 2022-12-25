@@ -141,7 +141,7 @@ def buscarTag(prx_catalogo, usr_tk):
     res = input("¿Desea realizar una búsqueda con todos los tags? (s/n): ")
     todos = bool(res == "s")
 
-    vidsId = prx_catalogo.getTilesByTag(tags, todos, usr_tk)
+    vidsId = prx_catalogo.getTilesByTags(tags, todos, usr_tk)
 
     if vidsId:
         try:
