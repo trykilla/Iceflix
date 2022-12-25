@@ -131,7 +131,7 @@ class Cliente(Ice.Application):
             es_admin = self.auth_prx.isAdmin(tk_admin)
             if not es_admin:
                 print("No tiene permisos de administrador")
-            salir = True
+                salir = True
             
         
         if not salir:
