@@ -18,11 +18,13 @@
 
 import getpass
 import logging
+import random
 import Ice
 import time
 import sys
 import hashlib
 import threading
+import IceStorm
 
 Ice.loadSlice("iceflix/iceflix.ice")
 import IceFlix
@@ -30,7 +32,7 @@ import IceFlix
 MAXINT = 3
 SEGDORMIR = 5.0
 TIMER = 20
-
+mains = []
 
 
 def menu():
@@ -198,6 +200,19 @@ def editarCatalogo(prx_catalogo, vid, tkn):
             logging.error("No tiene permisos para editar el catálogo")
 
 
+class AnnouncemntI(IceFlix.Announcement):
+    """Clase AnnouncemntI: Clase que se encarga de anunciar al servidor principal"""
+
+    def __init__(self):
+        self.Main = []
+            
+    def announce(self, service, srvId, current=None):
+        if service.ice_isA("::IceFlix::Main"):
+            if service not in self.Main:
+                self.Main.append(IceFlix.MainPrx.uncheckedCast(service))
+                print("Servidor principal conectado con id: " + srvId)
+
+
 class Cliente(Ice.Application):
 
     """Clase Cliente: Ejecuta todos los métodos que necesite el usuario.
@@ -209,6 +224,7 @@ class Cliente(Ice.Application):
     vids = []
     log_prx = None
     catalog_proxy = None
+    main_prx = None
 
     
     def conectarHilo(self,go):
@@ -228,6 +244,8 @@ class Cliente(Ice.Application):
                 break
             if go or self.usr == "no_usr":
                 break
+    def renovar_main(self,annnoun_ser):
+        self.main_prx = random.choice(annnoun_ser.Main)
 
     def run(self, args):
         """Método que ejecuta el cliente
@@ -236,18 +254,33 @@ class Cliente(Ice.Application):
         self.usr_tok = "no_usr"
         self.usr = "no_usr"
         opcion = 0
-        Cliente_prx = self.communicator().propertyToProxy("Cliente_prx")
+        
+        broker = self.communicator()
+        adapter_ann = broker.createObjectAdapter("AnnouncementAdapter")
+        adapter_ann.activate()
+        n_proxy = broker.stringToProxy("IceStorm/TopicManager:tcp -p 10000")
+        topic_manager = IceStorm.TopicManagerPrx.checkedCast(n_proxy)
+        
+        announcement_topic = topic_manager.retrieve("Announcements")
+        annnoun_ser = AnnouncemntI()
+        
+        announPrx = adapter_ann.addWithUUID(annnoun_ser)
+        announcement_topic.subscribeAndGetPublisher({},announPrx)
+        
+        # Cliente_prx = self.communicator().propertyToProxy("Cliente_prx")
+        self.main_prx = random.choice(annnoun_ser.Main)
+        re_main = threading.Timer(10.0,target=self.renovar_main, args=([annnoun_ser]))
+        re_main.start()
+        # try:
+        #     Cliente_ice_prx = IceFlix.MainPrx.checkedCast(Cliente_prx)
+        print("[*] Conectado al servidor")
 
-        try:
-            Cliente_ice_prx = IceFlix.MainPrx.checkedCast(Cliente_prx)
-            print("[*] Conectado al servidor")
-
-        except Ice.ConnectionRefusedException:
-            logging.error("No se pudo conectar...")
-            Cliente_ice_prx = reconectar(Cliente_prx)
-            if not Cliente_ice_prx:
-                logging.error("No se logró reconectar")
-                salir = True
+        # except Ice.ConnectionRefusedException:
+        #     logging.error("No se pudo conectar...")
+        #     Cliente_ice_prx = reconectar(Cliente_prx)
+        #     if not Cliente_ice_prx:
+        #         logging.error("No se logró reconectar")
+        #         salir = True
 
         if salir:
             opcion = 6

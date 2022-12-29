@@ -173,7 +173,8 @@ class Cliente(Ice.Application):
                 elif opcion == 3:
                     try:
 
-                        catalog_proxy = Cliente_ice_prx.getCatalog()
+                        catalog_proxy = IceFlix.AuthenticatorPrx.checkedCast(
+                            Cliente_ice_prx.getCatalog())
                         vids = Client.buscarNombre(catalog_proxy, tk_admin)
                         Client.mostrarVids(vids)
                         vid = input("Introduzca el vídeo a editar(número):\nVídeos: ", str(
@@ -195,13 +196,13 @@ class Cliente(Ice.Application):
 
                 elif opcion == 4:
                     ruta = input("Introduzca la ruta del archivo: \n")
-                    if not ruta.endswith(".mp4") or not os.path.isfile(ruta):
-                        logging.error("El archivo debe ser un .mp4")
+                    if not os.path.isfile(ruta):
+                        logging.error("El archivo debe ser un fichero")
                     else:
                         uploader = FileUploaderI(ruta)
-                        prx_uploader = adapter.addWithUUID(uploader)
+                        prx_ad = adapter.addWithUUID(uploader)
                         prx_uploader = IceFlix.FileUploaderPrx.checkedCast(
-                        prx_uploader)
+                        prx_ad)
                         try:
                             prx_fs = IceFlix.FileServicePrx.checkedCast(
                             Cliente_ice_prx.getFileService())
