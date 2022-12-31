@@ -22,10 +22,15 @@ import time
 import sys
 import hashlib
 import Client
+import threading
+import IceStorm
 
 Ice.loadSlice("iceflix/iceflix.ice")
 
 import IceFlix
+
+mains = []
+event = threading.Event()
 
 def menu():
     """Menu de opciones
@@ -82,7 +87,18 @@ class FileUploaderI(IceFlix.FileUploader):
             current (None, optional): None. Defaults to None.
         """        
         self.file.close()
+class AnnouncemntI(IceFlix.Announcement):
+    """Clase AnnouncemntI: Clase que se encarga de anunciar al servidor principal"""
 
+    def __init__(self):
+        self.Main = []
+            
+    def announce(self, service, srvId, current=None):
+        if service.ice_isA("::IceFlix::Main"):
+            if service not in mains:
+                mains.append(IceFlix.MainPrx.uncheckedCast(service))
+                print("Servidor principal conectado con id: " + srvId)
+                event.set()
 
 class Cliente(Ice.Application):
 
@@ -98,9 +114,26 @@ class Cliente(Ice.Application):
             args (String): Argumentos de entrada
         """        
         # Creamos el proxy del objeto remoto
-        print("Está intentando accederal modo administrador")
+        print("Está intentando acceder al modo administrador")
         salir = False
         opcion = 0
+        
+        
+        broker = self.communicator()
+        adapter_ann = broker.createObjectAdapter("AnnouncementAdapter")
+        adapter_ann.activate()
+        n_proxy = broker.stringToProxy("IceStorm/TopicManager:tcp -p 10000")
+        topic_manager = IceStorm.TopicManagerPrx.checkedCast(n_proxy)
+        
+        announcement_topic = topic_manager.retrieve("Announcements")
+        annnoun_ser = AnnouncemntI()
+        
+        announPrx = adapter_ann.addWithUUID(annnoun_ser)
+        announcement_topic.subscribeAndGetPublisher({},announPrx)
+        
+        
+        
+        
         Cliente_prx = self.communicator().propertyToProxy("Cliente_prx")
         adapter = self.communicator().createObjectAdapter("FileUploaderAdapter")
         adapter.activate()

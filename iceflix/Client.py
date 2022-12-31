@@ -33,6 +33,7 @@ MAXINT = 3
 SEGDORMIR = 5.0
 TIMER = 20
 mains = []
+event = threading.Event()
 
 
 def menu():
@@ -208,9 +209,10 @@ class AnnouncemntI(IceFlix.Announcement):
             
     def announce(self, service, srvId, current=None):
         if service.ice_isA("::IceFlix::Main"):
-            if service not in self.Main:
-                self.Main.append(IceFlix.MainPrx.uncheckedCast(service))
+            if service not in mains:
+                mains.append(IceFlix.MainPrx.uncheckedCast(service))
                 print("Servidor principal conectado con id: " + srvId)
+                event.set()
 
 
 class Cliente(Ice.Application):
@@ -224,7 +226,11 @@ class Cliente(Ice.Application):
     vids = []
     log_prx = None
     catalog_proxy = None
-    main_prx = None
+    Cliente_ice_prx = None
+    hi = None
+    going = False
+    ex = False
+
 
     
     def conectarHilo(self,go):
@@ -242,11 +248,27 @@ class Cliente(Ice.Application):
             except Ice.CommunicatorDestroyedException:
                 print("Se ha cerrado la conexión")
                 break
-            if go or self.usr == "no_usr":
+            if self.going or self.usr == "no_usr":
                 break
-    def renovar_main(self,annnoun_ser):
-        self.main_prx = random.choice(annnoun_ser.Main)
-
+        
+    def renovar_main(self):
+        while True:
+            self.Cliente_ice_prx = random.choice(mains)
+            if self.ex:
+                break
+        
+        
+    def cerrar(self):
+    
+        while True:
+            
+            if not mains:
+                logging.error("TIEMPO EXCEDIDO: No hay servidores principales disponibles")
+                event.set()
+                break
+            if mains:
+                break
+          
     def run(self, args):
         """Método que ejecuta el cliente
         """
@@ -254,6 +276,7 @@ class Cliente(Ice.Application):
         self.usr_tok = "no_usr"
         self.usr = "no_usr"
         opcion = 0
+        
         
         broker = self.communicator()
         adapter_ann = broker.createObjectAdapter("AnnouncementAdapter")
@@ -267,9 +290,21 @@ class Cliente(Ice.Application):
         announPrx = adapter_ann.addWithUUID(annnoun_ser)
         announcement_topic.subscribeAndGetPublisher({},announPrx)
         
+        
+        if not mains:
+            print("Esperando al servidor principal...")
+            self.hi = threading.Timer(10.0,function=self.cerrar)
+            self.hi.start()
+            event.wait()
+
+        if not mains:
+            return 0
+        
         # Cliente_prx = self.communicator().propertyToProxy("Cliente_prx")
-        self.main_prx = random.choice(annnoun_ser.Main)
-        re_main = threading.Timer(10.0,target=self.renovar_main, args=([annnoun_ser]))
+        
+        self.Cliente_ice_prx = random.choice(mains)
+        print(self.Cliente_ice_prx)
+        re_main = threading.Timer(10.0,function=self.renovar_main)
         re_main.start()
         # try:
         #     Cliente_ice_prx = IceFlix.MainPrx.checkedCast(Cliente_prx)
@@ -299,7 +334,7 @@ class Cliente(Ice.Application):
                 self.usr, self.contra = login()
                 try:
                     self.log_prx = IceFlix.AuthenticatorPrx.checkedCast(
-                        Cliente_ice_prx.getAuthenticator())
+                        self.Cliente_ice_prx.getAuthenticator())
                     self.usr_tok = self.log_prx.refreshAuthorization(
                         self.usr, self.contra)
                     proccess = threading.Thread(target=self.conectarHilo, args=([False]))
@@ -317,7 +352,7 @@ class Cliente(Ice.Application):
             if opcion == 2:
                 try:
                     self.catalog_proxy = IceFlix.MediaCatalogPrx.checkedCast(
-                        Cliente_ice_prx.getCatalog())
+                        self.Cliente_ice_prx.getCatalog())
                     
                     buscar = input(
                         "¿Quiere buscar por nombre o por tag?\n1. Nombre\n2. Tag\n")
@@ -486,8 +521,10 @@ class Cliente(Ice.Application):
             if opcion == 6:
                 
                 print("[!] Saliendo...\nEspere",TIMER,"segundos o"
-                      +"pulse Ctrl+C para salir inmediatamente")
-                time.sleep(0.5)
+                      +" pulse Ctrl+C para salir inmediatamente")
+                self.ex = True
+                
+                
                 
 
 
