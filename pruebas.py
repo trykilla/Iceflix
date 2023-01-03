@@ -3,8 +3,27 @@
 import queue
 import random 
 import threading
+import keyboard
 # import numpy as np
 import time
+import curses
+
+
+def main(stdscr):
+    stdscr.nodelay(True)
+    try:
+        return stdscr.getkey()
+    except:
+        return None
+
+def key_pressed(key):
+    inp_key = curses.wrapper(main)
+
+    while inp_key is not None:
+        if key == inp_key:
+            return True
+        inp_key = curses.wrapper(main)
+    return False
 
 event = threading.Event()
 
@@ -50,6 +69,18 @@ print("Espero...")
 while not mains:
     print("Esperando a que se active el evento")
     event.wait()
+    
+print("Para parar pulse 'x'")
+# while True:
+#     if keyboard.is_pressed('x'):
+#         break
+#     print("Me paré uwu")
+#     time.sleep(1)
+while not key_pressed('x'):
+    print("Me ejecuto")
+    time.sleep(1)
+    
+    
     
     
 

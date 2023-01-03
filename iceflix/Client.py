@@ -303,19 +303,20 @@ class Cliente(Ice.Application):
         # Cliente_prx = self.communicator().propertyToProxy("Cliente_prx")
         
         self.Cliente_ice_prx = random.choice(mains)
-        print(self.Cliente_ice_prx)
+        
         re_main = threading.Timer(10.0,function=self.renovar_main)
         re_main.start()
-        # try:
-        #     Cliente_ice_prx = IceFlix.MainPrx.checkedCast(Cliente_prx)
-        print("[*] Conectado al servidor")
+        try:
+            self.Cliente_ice_prx = IceFlix.MainPrx.uncheckedCast(self.Cliente_ice_prx)
+            print("[*] Conectado al servidor")
+            print("Proxy main utilizado:",self.Cliente_ice_prx)
 
-        # except Ice.ConnectionRefusedException:
-        #     logging.error("No se pudo conectar...")
-        #     Cliente_ice_prx = reconectar(Cliente_prx)
-        #     if not Cliente_ice_prx:
-        #         logging.error("No se logró reconectar")
-        #         salir = True
+        except Ice.ConnectionRefusedException:
+            logging.error("No se pudo conectar...")
+            self.Cliente_ice_prx = reconectar(self.Cliente_ice_prx)
+            if not self.Cliente_ice_prx:
+                logging.error("No se logró reconectar")
+                salir = True
 
         if salir:
             opcion = 6

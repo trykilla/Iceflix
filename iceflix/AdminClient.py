@@ -17,6 +17,7 @@
 
 import logging
 import os
+import random
 import Ice
 import time
 import sys
@@ -24,10 +25,33 @@ import hashlib
 import Client
 import threading
 import IceStorm
+import keyboard
 
 Ice.loadSlice("iceflix/iceflix.ice")
 
 import IceFlix
+
+import curses
+
+logging.basicConfig(level=logging.NOTSET)
+
+
+
+def main(stdscr):
+    stdscr.nodelay(True)
+    try:
+        return stdscr.getkey()
+    except:
+        return None
+
+def key_pressed(key):
+    inp_key = curses.wrapper(main)
+
+    while inp_key is not None:
+        if key == inp_key:
+            return True
+        inp_key = curses.wrapper(main)
+    return False
 
 mains = []
 event = threading.Event()
@@ -48,11 +72,12 @@ def menu():
     print("3. Editar un título")
     print("4. Subir un archivo")
     print("5. Borrar un archivo")
-    print("6. Salir")
+    print("6. Ver eventos de IceStorm")
+    print("7. Salir")
 
     opcion = input("Opción: ")
     print()
-    if not opcion.isdigit() or int(opcion) not in range(1, 7):
+    if not opcion.isdigit() or int(opcion) not in range(1, 8):
         raise ValueError
     return int(opcion)
 
@@ -91,7 +116,10 @@ class AnnouncemntI(IceFlix.Announcement):
     """Clase AnnouncemntI: Clase que se encarga de anunciar al servidor principal"""
 
     def __init__(self):
-        self.Main = []
+        self.verbose = False
+    
+    def set_verbose(self, verbose, current=None):
+        self.verbose = verbose
             
     def announce(self, service, srvId, current=None):
         if service.ice_isA("::IceFlix::Main"):
@@ -99,6 +127,20 @@ class AnnouncemntI(IceFlix.Announcement):
                 mains.append(IceFlix.MainPrx.uncheckedCast(service))
                 print("Servidor principal conectado con id: " + srvId)
                 event.set()
+            if self.verbose:
+                print("Nuevo main: " + srvId)
+        
+        if service.ice_isA("::IceFlix::FileService"):
+            if self.verbose:
+                print("Nuevo servicio de ficheros: " + srvId)
+        if service.ice_isA("::IceFlix::MediaCatalog"):
+            if self.verbose:
+                print("Nuevo servicio de catálogo: " + srvId)
+        if service.ice_isA("::IceFlix::Authenticator"):
+            if self.verbose:
+                print("Nuevo servicio de autenticación: " + srvId)
+        
+
 
 class Cliente(Ice.Application):
 
@@ -106,6 +148,24 @@ class Cliente(Ice.Application):
     """    
     
     auth_prx = ""
+    Cliente_prx = ""
+    ex = False
+
+    def cerrar(self):
+    
+        while True:
+            
+            if not mains:
+                logging.error("TIEMPO EXCEDIDO: No hay servidores principales disponibles")
+                event.set()
+                break
+            if mains:
+                break
+    def renovar_main(self):
+        while True:
+            self.Cliente_ice_prx = random.choice(mains)
+            if self.ex:
+                break 
 
     def run(self, args):
         """Ejecuta el cliente
@@ -131,26 +191,38 @@ class Cliente(Ice.Application):
         announPrx = adapter_ann.addWithUUID(annnoun_ser)
         announcement_topic.subscribeAndGetPublisher({},announPrx)
         
-        
-        
-        
-        Cliente_prx = self.communicator().propertyToProxy("Cliente_prx")
+
+        # Cliente_prx = self.communicator().propertyToProxy("Cliente_prx")
         adapter = self.communicator().createObjectAdapter("FileUploaderAdapter")
         adapter.activate()
+        
+        if not mains:
+            print("Esperando al servidor principal...")
+            self.hi = threading.Timer(15.0,function=self.cerrar)
+            self.hi.start()
+            event.wait()
+
+        if not mains:
+            return 0
+        
+        
+        re_main = threading.Timer(10.0,function=self.renovar_main)
+        re_main.start()
         try:
-            Cliente_ice_prx = IceFlix.MainPrx.checkedCast(Cliente_prx)
+            Cliente_ice_prx = IceFlix.MainPrx.uncheckedCast(random.choice(mains))
             print("[*] Conectado al servidor")
+            print("Proxy main utilizado: ", Cliente_ice_prx)
 
         except:
             logging.error("No se pudo conectar...")
-            Cliente_ice_prx = Client.reconectar(Cliente_prx)
+            Cliente_ice_prx = Client.reconectar(random.choice(mains))
             if not Cliente_ice_prx:
                 print("Imposible reconectar")
                 salir = True
         
         if not salir:
             tk_admin = input("Introduzca el token de administrador: ")
-        # tk_admin = hashlib.sha256(tk_admin.encode('utf-8')).hexdigest()
+        
 
         if not salir:
             try:
@@ -169,6 +241,7 @@ class Cliente(Ice.Application):
         
         if not salir:
             print("Bienvenido al modo administrador")
+            
 
             while opcion != 6:
                 try:
@@ -249,7 +322,7 @@ class Cliente(Ice.Application):
                             "El servidor no está disponible en este momento")
                         except Ice.ConnectionRefusedException:
                             logging.error("No se pudo conectar con el servidor")
-                            opcion = 6
+                            opcion = 7
 
                 elif opcion == 5:
                     try:
@@ -273,10 +346,20 @@ class Cliente(Ice.Application):
                         "El servidor no está disponible en este momento")
                     except Ice.ConnectionRefusedException:
                         logging.error("No se pudo conectar con el servidor")
-                        opcion = 6
+                        opcion = 7
 
                 elif opcion == 6:
+                    
+                    print("[!] Para parar la ejecución, pulse P y luego intro")
+                    
+                    while True:
+                        annnoun_ser.set_verbose(True)
+                        if input() == "p" or input() == "P":
+                            break
+                
+                elif opcion == 7:
                     print("[!] Saliendo...")
+                    self.ex = True
                     time.sleep(1)
         else:
             print("[!] No es posible conectarse (Servicio no disponible o token de administrador no válido)")
