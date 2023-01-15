@@ -112,6 +112,62 @@ class FileUploaderI(IceFlix.FileUploader):
             current (None, optional): None. Defaults to None.
         """        
         self.file.close()
+
+class FileAvailabilityI(IceFlix.FileAvailabilityAnnounce):
+    def __init__(self):
+        super().__init__()
+        self.verbose = False
+        
+    def set_verbose(self, verbose, current=None):
+        self.verbose = verbose
+    
+    def announceFiles(self, mediaIds, serviceId, current=None):
+        if self.verbose:
+            print("Archivos anunciados: " + mediaIds + " en el servicio: " + serviceId)
+
+class CatalogUpdateI(IceFlix.CatalogUpdate):
+    
+    def __init__(self) -> None:
+        super().__init__()
+        self.verbose = False
+        
+    def set_verbose(self, verbose, current=None):
+        self.verbose = verbose
+        
+    def renameTile(self, mediaId, newName, serviceId, current=None):
+        if self.verbose:
+            print("Renombrando titulo: " + mediaId + " a: " + newName + " en el servicio: " + serviceId)
+    def addTags(self, mediaId, user, tags, serviceId, current=None):
+        if self.verbose:
+            print("Añadiendo etiquetas: " + tags + " a: " + mediaId + " en el servicio: " + serviceId)
+    def removeTags(self, mediaId, user, tags, serviceId, current=None):
+        if self.verbose:
+            print("Eliminando etiquetas: " + tags + " a: " + mediaId + " en el servicio: " + serviceId)        
+        
+
+
+class UserUpdateI(IceFlix.UserUpdate):
+    
+    def __init__(self) -> None:
+        super().__init__()
+        self.verbose = False
+    
+    def set_verbUserUpdate(self, verbose, current=None):
+        self.verbose = verbose
+        
+    def newToken(self, user, token, serviceId, current=None):
+        if self.verbose:
+            print("Nuevo token: " + token + " para el usuario: " + user + " en el servicio: " + serviceId)
+    def revokeToken(self, token, serviceId, current=None):
+        if self.verbose:
+            print("Token revocado: " + token + " en el servicio: " + serviceId)
+    def newUser(self, user, passwordHash, serviceId, current=None):
+        if self.verbose:
+            print("Nuevo usuario: " + user + " en el servicio: " + serviceId)
+    def removeUser(self, user, serviceId, current=None):
+        if self.verbose:
+            print("Usuario eliminado: " + user + " en el servicio: " + serviceId)
+
 class AnnouncemntI(IceFlix.Announcement):
     """Clase AnnouncemntI: Clase que se encarga de anunciar al servidor principal"""
 
@@ -182,8 +238,56 @@ class Cliente(Ice.Application):
         broker = self.communicator()
         adapter_ann = broker.createObjectAdapter("AnnouncementAdapter")
         adapter_ann.activate()
+        
+        adapter_usr = broker.createObjectAdapter("UserUpdateAdapter")
+        adapter_files = broker.createObjectAdapter("FileUpdateAdapter")
+        adapter_med = broker.createObjectAdapter("MediaCatalogAdapter")
+        
+        adapter_usr.activate()
+        adapter_med.activate()
+        adapter_files.activate()
+        
+        #  try:
+        #     topic_manager = IceStorm.TopicManagerPrx.checkedCast(n_proxy)
+        # except Ice.ConnectionRefusedException:
+        #     print("No se ha podido conectar con el Topic Manager, intentando reconectar...")
+        #     time.sleep(5)
+        #     try:
+        #         topic_manager = IceStorm.TopicManagerPrx.checkedCast(n_proxy)
+        #     except Ice.ConnectionRefusedException:
+        #         print("No se ha podido reconectar, pruebe más tarde...")
+        #         return 0
+        
         n_proxy = broker.stringToProxy("IceStorm/TopicManager:tcp -p 10000")
-        topic_manager = IceStorm.TopicManagerPrx.checkedCast(n_proxy)
+        
+        try:
+            topic_manager = IceStorm.TopicManagerPrx.checkedCast(n_proxy)
+        except Ice.ConnectionRefusedException:
+            print("No se ha podido conectar con el Topic Manager, intentando reconectar...")
+            time.sleep(5)
+            try:
+                topic_manager = IceStorm.TopicManagerPrx.checkedCast(n_proxy)
+            except Ice.ConnectionRefusedException:
+                print("No se ha podido reconectar, pruebe más tarde...")
+                return 0
+        
+        usr_topic = topic_manager.retrieve("UserUpdates")
+        usr_ser = UserUpdateI()
+        
+        usr_upPrx = adapter_usr.addWithUUID(usr_ser)
+        usr_topic.subscribeAndGetPublisher({},usr_upPrx)
+        
+        cat_topic = topic_manager.retrieve("CatalogUpdates")
+        cat_ser = CatalogUpdateI()
+        
+        cat_upPrx = adapter_med.addWithUUID(cat_ser)
+        cat_topic.subscribeAndGetPublisher({},cat_upPrx)
+        
+        file_topic = topic_manager.retrieve("FileAvailabilityAnnounces")
+        file_ser = FileAvailabilityI()
+        
+        file_upPrx = adapter_files.addWithUUID(file_ser)
+        file_topic.subscribeAndGetPublisher({},file_upPrx)
         
         announcement_topic = topic_manager.retrieve("Announcements")
         annnoun_ser = AnnouncemntI()
@@ -352,8 +456,11 @@ class Cliente(Ice.Application):
                     
                     print("[!] Para parar la ejecución, pulse P y luego intro")
                     
+                    local_verbose = True
+                    
                     while True:
-                        annnoun_ser.set_verbose(True)
+                        annnoun_ser.set_verbose(local_verbose)
+                        usr_ser.set_verbUserUpdate(local_verbose)
                         if input() == "p" or input() == "P":
                             break
                 

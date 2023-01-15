@@ -282,8 +282,18 @@ class Cliente(Ice.Application):
         adapter_ann = broker.createObjectAdapter("AnnouncementAdapter")
         adapter_ann.activate()
         n_proxy = broker.stringToProxy("IceStorm/TopicManager:tcp -p 10000")
-        topic_manager = IceStorm.TopicManagerPrx.checkedCast(n_proxy)
-        
+        try:
+            topic_manager = IceStorm.TopicManagerPrx.checkedCast(n_proxy)
+        except Ice.ConnectionRefusedException:
+            print("No se ha podido conectar con el Topic Manager, intentando reconectar...")
+            time.sleep(5)
+            try:
+                topic_manager = IceStorm.TopicManagerPrx.checkedCast(n_proxy)
+            except Ice.ConnectionRefusedException:
+                print("No se ha podido reconectar, pruebe más tarde...")
+                return 0
+            
+              
         announcement_topic = topic_manager.retrieve("Announcements")
         annnoun_ser = AnnouncemntI()
         
