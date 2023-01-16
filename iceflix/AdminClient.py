@@ -31,27 +31,8 @@ Ice.loadSlice("iceflix/iceflix.ice")
 
 import IceFlix
 
-import curses
 
 logging.basicConfig(level=logging.NOTSET)
-
-
-
-def main(stdscr):
-    stdscr.nodelay(True)
-    try:
-        return stdscr.getkey()
-    except:
-        return None
-
-def key_pressed(key):
-    inp_key = curses.wrapper(main)
-
-    while inp_key is not None:
-        if key == inp_key:
-            return True
-        inp_key = curses.wrapper(main)
-    return False
 
 mains = []
 event = threading.Event()
@@ -454,14 +435,23 @@ class Cliente(Ice.Application):
 
                 elif opcion == 6:
                     
-                    print("[!] Para parar la ejecución, pulse P y luego intro")
+                    print("[!] Para parar la ejecución, pulse P y luego intro (Si no funciona, salir de la aplicación con Control + C)")
                     
                     local_verbose = True
+                    
                     
                     while True:
                         annnoun_ser.set_verbose(local_verbose)
                         usr_ser.set_verbUserUpdate(local_verbose)
+                        cat_ser.set_verbose(local_verbose)
+                        file_ser.set_verbose(local_verbose)
+                        
                         if input() == "p" or input() == "P":
+                            local_verbose = False
+                            annnoun_ser.set_verbose(local_verbose)
+                            usr_ser.set_verbUserUpdate(local_verbose)
+                            cat_ser.set_verbose(local_verbose)
+                            file_ser.set_verbose(local_verbose)
                             break
                 
                 elif opcion == 7:
