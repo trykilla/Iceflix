@@ -95,6 +95,8 @@ class FileUploaderI(IceFlix.FileUploader):
         self.file.close()
 
 class FileAvailabilityI(IceFlix.FileAvailabilityAnnounce):
+    
+    """Clase FileAvailabilityI: Clase que se encarga de anunciar al servidor de los archivos disponibles"""
     def __init__(self):
         super().__init__()
         self.verbose = False
@@ -107,6 +109,8 @@ class FileAvailabilityI(IceFlix.FileAvailabilityAnnounce):
             print("Archivos anunciados: " + mediaIds + " en el servicio: " + serviceId)
 
 class CatalogUpdateI(IceFlix.CatalogUpdate):
+    
+    """Clase CatalogUpdateI: Clase que se encarga de anunciar los updates del catalogo"""
     
     def __init__(self) -> None:
         super().__init__()
@@ -128,6 +132,8 @@ class CatalogUpdateI(IceFlix.CatalogUpdate):
 
 
 class UserUpdateI(IceFlix.UserUpdate):
+    
+    """Clase UserUpdateI: Clase que se encarga de anunciar los updates de los usuarios"""
     
     def __init__(self) -> None:
         super().__init__()
@@ -456,6 +462,11 @@ class Cliente(Ice.Application):
                 
                 elif opcion == 7:
                     print("[!] Saliendo...")
+                    
+                    cat_topic.unsubscribe(cat_upPrx)
+                    usr_topic.unsubscribe(usr_upPrx)
+                    file_topic.unsubscribe(file_upPrx)
+                    announcement_topic.unsubscribe(announPrx)
                     self.ex = True
                     time.sleep(1)
         else:
