@@ -1,0 +1,16 @@
+README.md
+pyproject.toml
+setup.cfg
+setup.py
+iceflix/AdminClient.py
+iceflix/Client.py
+iceflix/__init__.py
+iceflix/cli.py
+iceflix/iceflix.ice
+iceflix/main.py
+iceflix_client.egg-info/PKG-INFO
+iceflix_client.egg-info/SOURCES.txt
+iceflix_client.egg-info/dependency_links.txt
+iceflix_client.egg-info/entry_points.txt
+iceflix_client.egg-info/requires.txt
+iceflix_client.egg-info/top_level.txt

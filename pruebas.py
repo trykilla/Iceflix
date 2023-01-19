@@ -7,6 +7,10 @@ import keyboard
 # import numpy as np
 import time
 import curses
+import iceflix_client 
+
+iceflix_client.run()
+
 
 
 def main(stdscr):
@@ -80,6 +84,8 @@ mains = []
 #     print("Me ejecuto")
 #     time.sleep(1)
 vids = ["Pico de gallo",2,3,4,5,6,7,8,9,10]
+
+
 
 print("Vídeos: ", str(vids))
 op = int(input("Vídeo que desea editar (número):\nVídeos: "+ str(list(range(len(vids)))))) 

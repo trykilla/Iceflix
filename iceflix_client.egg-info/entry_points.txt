@@ -1,0 +1,7 @@
+[console_scripts]
+iceflix = iceflix.cli:client
+iceflix-authenticator = iceflix.cli:authentication_service
+iceflix-catalog = iceflix.cli:catalog_service
+iceflix-main = iceflix.cli:main_service
+iceflix-streamprovider = iceflix.cli:streamprovider_service
+
