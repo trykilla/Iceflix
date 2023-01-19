@@ -62,24 +62,34 @@ def func(mains):
 
 mains = []
 
-t1 = threading.Thread(target=func, args=([mains]))
-t1.start()
-event = threading.Event()
-print("Espero...")
-while not mains:
-    print("Esperando a que se active el evento")
-    event.wait()
+# t1 = threading.Thread(target=func, args=([mains]))
+# t1.start()
+# event = threading.Event()
+# print("Espero...")
+# while not mains:
+#     print("Esperando a que se active el evento")
+#     event.wait()
     
-print("Para parar pulse 'x'")
-# while True:
-#     if keyboard.is_pressed('x'):
-#         break
-#     print("Me paré uwu")
+# print("Para parar pulse 'x'")
+# # while True:
+# #     if keyboard.is_pressed('x'):
+# #         break
+# #     print("Me paré uwu")
+# #     time.sleep(1)
+# while not key_pressed('x'):
+#     print("Me ejecuto")
 #     time.sleep(1)
-while not key_pressed('x'):
-    print("Me ejecuto")
-    time.sleep(1)
-    
+vids = ["Pico de gallo",2,3,4,5,6,7,8,9,10]
+
+print("Vídeos: ", str(vids))
+op = int(input("Vídeo que desea editar (número):\nVídeos: "+ str(list(range(len(vids)))))) 
+
+for i in range(len(vids)):
+    if op == i:
+        print("Vídeo seleccionado: ", vids[i])
+        break
+# op = int(input("Vídeo que desea editar (número):\nVídeos: ",
+#                                    str(list(range(len(vids))))))
     
     
     

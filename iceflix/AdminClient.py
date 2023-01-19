@@ -14,6 +14,13 @@
 # pylint: disable=R0912
 # pylint: disable=R0915
 # pylint: disable=E1101
+# pylint: disable=W0613
+
+"""Módulo principal del admin del cliente
+    Raises:
+        ValueError: Error de valor
+"""
+
 
 import logging
 import os
@@ -25,7 +32,6 @@ import hashlib
 import Client
 import threading
 import IceStorm
-import keyboard
 
 Ice.loadSlice("iceflix/iceflix.ice")
 
@@ -62,7 +68,29 @@ def menu():
         raise ValueError
     return int(opcion)
 
+def menu_monitorizacion():
+    """Menu de opciones
 
+    Raises:
+        ValueError: Error de valor
+
+    Returns:
+        Opcion: Opcion elegida
+    """
+    print("\n")
+    print("Seleccione una opción:")
+    print("1. Nuevos anuncios")
+    print("2. Nuevos CatalogUpdates")
+    print("3. Nuevos MediaUpdates")
+    print("4. Nuevos FileAvailabilities")
+    print("5. Salir")
+
+
+    opcion = input("Opción: ")
+    print()
+    if not opcion.isdigit() or int(opcion) not in range(1, 6):
+        raise ValueError
+    return int(opcion)
 class FileUploaderI(IceFlix.FileUploader):
     """Clase FileUploaderI, Sirviente de FileUploader
 
@@ -101,9 +129,11 @@ class FileAvailabilityI(IceFlix.FileAvailabilityAnnounce):
         super().__init__()
         self.verbose = False
         
+    """Función que activa el verbose"""
     def set_verbose(self, verbose, current=None):
         self.verbose = verbose
     
+    """Función que anuncia los archivos disponibles"""
     def announceFiles(self, mediaIds, serviceId, current=None):
         if self.verbose:
             print("Archivos anunciados: " + mediaIds + " en el servicio: " + serviceId)
@@ -115,7 +145,8 @@ class CatalogUpdateI(IceFlix.CatalogUpdate):
     def __init__(self) -> None:
         super().__init__()
         self.verbose = False
-        
+    
+    """Función que activa el verbose"""
     def set_verbose(self, verbose, current=None):
         self.verbose = verbose
         
@@ -160,6 +191,8 @@ class AnnouncemntI(IceFlix.Announcement):
 
     def __init__(self):
         self.verbose = False
+    
+    """Función que activa el verbose"""
     
     def set_verbose(self, verbose, current=None):
         self.verbose = verbose
@@ -245,7 +278,7 @@ class Cliente(Ice.Application):
         #         print("No se ha podido reconectar, pruebe más tarde...")
         #         return 0
         
-        n_proxy = broker.stringToProxy("IceStorm/TopicManager:tcp -p 10000")
+        n_proxy = broker.propertyToProxy("IceStorm.TopicManager")
         
         try:
             topic_manager = IceStorm.TopicManagerPrx.checkedCast(n_proxy)
@@ -334,7 +367,7 @@ class Cliente(Ice.Application):
             print("Bienvenido al modo administrador")
             
 
-            while opcion != 6:
+            while opcion != 7:
                 try:
                 
                     opcion = menu()
@@ -374,7 +407,7 @@ class Cliente(Ice.Application):
                             Cliente_ice_prx.getCatalog())
                         vids = Client.buscarNombre(catalog_proxy, tk_admin)
                         Client.mostrarVids(vids)
-                        vid = input("Introduzca el vídeo a editar(número):\nVídeos: ", str(
+                        vid = input("Introduzca el vídeo a editar(número):\nVídeos: "+ str(
                         list(range(len(vids)))))
                         nombre = input("Introduzca el nuevo nombre: ")
                         nombre = nombre+".mp4"
@@ -441,24 +474,44 @@ class Cliente(Ice.Application):
 
                 elif opcion == 6:
                     
-                    print("[!] Para parar la ejecución, pulse P y luego intro (Si no funciona, salir de la aplicación con Control + C)")
-                    
                     local_verbose = True
                     
-                    
-                    while True:
-                        annnoun_ser.set_verbose(local_verbose)
-                        usr_ser.set_verbUserUpdate(local_verbose)
-                        cat_ser.set_verbose(local_verbose)
-                        file_ser.set_verbose(local_verbose)
+                    while opcion != 5:
+                        try:
+                
+                            opcion = menu_monitorizacion()
+                        except ValueError:
+                            logging.error("Opción no válida")
                         
-                        if input() == "p" or input() == "P":
+                        if opcion == 1:
+                            
+                            annnoun_ser.set_verbose(local_verbose)
+                            input("Pulse intro para cerrar...\n")
                             local_verbose = False
                             annnoun_ser.set_verbose(local_verbose)
+                            
+                        elif opcion == 2:
                             usr_ser.set_verbUserUpdate(local_verbose)
+                            input("Pulse intro para cerrar...\n")
+                            local_verbose = False
+                            usr_ser.set_verbUserUpdate(local_verbose)
+
+                        elif opcion == 3:
                             cat_ser.set_verbose(local_verbose)
+                            input("Pulse intro para cerrar...\n")
+                            local_verbose = False
+                            cat_ser.set_verbose(local_verbose)
+                    
+                        elif opcion == 4:
                             file_ser.set_verbose(local_verbose)
-                            break
+                            input("Pulse intro para cerrar...\n")
+                            local_verbose = False
+                            file_ser.set_verbose(local_verbose)
+                        
+  
+                    time.sleep(1)
+                    print("[!] Cerrado")
+                            
                 
                 elif opcion == 7:
                     print("[!] Saliendo...")
@@ -468,7 +521,8 @@ class Cliente(Ice.Application):
                     file_topic.unsubscribe(file_upPrx)
                     announcement_topic.unsubscribe(announPrx)
                     self.ex = True
-                    time.sleep(1)
+
+                    
         else:
             print("[!] No es posible conectarse (Servicio no disponible o token de administrador no válido)")
 

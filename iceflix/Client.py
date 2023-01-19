@@ -158,6 +158,9 @@ def buscarTag(prx_catalogo, usr_tk):
     return videos
 
 
+
+
+
 def mostrarVids(vids):
     """Método para mostrar los vídeos
 
@@ -208,6 +211,7 @@ class AnnouncemntI(IceFlix.Announcement):
         self.Main = []
             
     def announce(self, service, srvId, current=None):
+        """Método que se encarga de anunciar al servidor principal"""
         if service.ice_isA("::IceFlix::Main"):
             if service not in mains:
                 mains.append(IceFlix.MainPrx.uncheckedCast(service))
@@ -281,7 +285,11 @@ class Cliente(Ice.Application):
         broker = self.communicator()
         adapter_ann = broker.createObjectAdapter("AnnouncementAdapter")
         adapter_ann.activate()
-        n_proxy = broker.stringToProxy("IceStorm/TopicManager:tcp -p 10000")
+        #IceStorm.TopicManagerPrx.checkedCast(
+#     self.communicator().propertyToProxy("IceStorm.TopicManager")
+# )
+
+        n_proxy = broker.propertyToProxy("IceStorm.TopicManager")
         try:
             topic_manager = IceStorm.TopicManagerPrx.checkedCast(n_proxy)
         except Ice.ConnectionRefusedException:
@@ -452,9 +460,11 @@ class Cliente(Ice.Application):
                         "un vídeo para poder editar el catálogo")
                     seguir = False
 
+                
+                
                 if seguir:
-                    
-                    op = int(input("Vídeo que desea editar (número):\nVídeos: ",
+                    mostrarVids(self.vids)
+                    op = int(input("Vídeo que desea editar (número):\nVídeos: "+
                                    str(list(range(len(self.vids))))))
                     try:
                         editarCatalogo(self.catalog_proxy,
@@ -496,8 +506,7 @@ class Cliente(Ice.Application):
                                     "El índice introducido no es válido (Solo números)")
                                 opcion = 6
                             try:
-
-                                
+                           
                                 fi_hand_prx = pro_prx.openFile(
                                 self.vids[vid].mediaId, self.usr_tok)
                                 
@@ -530,15 +539,12 @@ class Cliente(Ice.Application):
                     print("Sesión cerrada")
                 time.sleep(0.5)
             if opcion == 6:
-                
+                announcement_topic.unsubscribe(announPrx)
                 print("[!] Saliendo...\nEspere",TIMER,"segundos o"
                       +" pulse Ctrl+C para salir inmediatamente")
                 self.ex = True
                 
                 
-                
-
-
 if __name__ == "__main__":
     APP = Cliente()
     sys.exit(APP.main(sys.argv))
