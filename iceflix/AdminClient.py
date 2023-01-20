@@ -524,8 +524,7 @@ class Cliente(Ice.Application):
 
                     
         else:
-            print("[!] No es posible conectarse (Servicio no disponible o token de administrador no válido)")
-
+            print("[!] No es posible conectarse (Servicio no disponible o token de administrador no válido)")       
 if __name__ == '__main__':
     APP = Cliente()
     sys.exit(APP.main(sys.argv))
